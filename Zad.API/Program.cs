@@ -1,4 +1,6 @@
 
+using Zad.Infrastructure;
+
 namespace Zad.API
 {
     public class Program
@@ -12,6 +14,7 @@ namespace Zad.API
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+            builder.Services.AddInfrastructure(builder.Configuration);
 
             var app = builder.Build();
 
