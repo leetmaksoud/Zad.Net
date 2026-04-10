@@ -1,5 +1,6 @@
 
 using System.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -87,12 +88,27 @@ namespace Zad.API
             });
 
             var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
-            builder.Services.Configure<JwtOptions>(jwtSection);
-
             var jwtSettings = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JWT settings are missing.");
             if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
             {
-                throw new InvalidOperationException("Jwt:Secret must be at least 32 characters.");
+                if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
+                {
+                    jwtSettings.Secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+                }
+                else
+                {
+                    throw new InvalidOperationException("Jwt:Secret must be at least 32 characters. Configure it via environment variable Jwt__Secret.");
+                }
+            }
+
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray() ?? [];
+
+            if (allowedOrigins.Length == 0 && !builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+            {
+                throw new InvalidOperationException("Cors:AllowedOrigins must be configured for non-development environments.");
             }
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -117,6 +133,14 @@ namespace Zad.API
             {
                 options.AddPolicy("DefaultCors", policy =>
                 {
+                    if (allowedOrigins.Length > 0)
+                    {
+                        policy.WithOrigins(allowedOrigins)
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                        return;
+                    }
+
                     policy.AllowAnyOrigin()
                         .AllowAnyHeader()
                         .AllowAnyMethod();
@@ -125,12 +149,20 @@ namespace Zad.API
 
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.PostConfigure<JwtOptions>(options =>
+            {
+                options.Secret = jwtSettings.Secret;
+                options.Issuer = jwtSettings.Issuer;
+                options.Audience = jwtSettings.Audience;
+                options.ExpirationMinutes = jwtSettings.ExpirationMinutes;
+            });
 
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<ZadDbContext>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                 if (dbContext.Database.IsSqlServer())
                 {
                     await dbContext.Database.MigrateAsync();
@@ -140,14 +172,12 @@ namespace Zad.API
                     await dbContext.Database.EnsureCreatedAsync();
                 }
 
-                var isFirstRun = !await dbContext.Categories.AnyAsync()
-                    && !await dbContext.Documents.AnyAsync()
-                    && !await dbContext.Users.AnyAsync();
-
-                if (isFirstRun)
+                if (string.IsNullOrWhiteSpace(builder.Configuration["Seed:AdminPassword"]))
                 {
-                    await SeedData.SeedAsync(dbContext);
+                    logger.LogWarning("Seed:AdminPassword is not configured. Admin user creation will be skipped.");
                 }
+
+                await SeedData.SeedAsync(dbContext, builder.Configuration);
             }
 
             app.UseSwagger();

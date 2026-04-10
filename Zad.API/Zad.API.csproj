@@ -28,4 +28,9 @@
     <ProjectReference Include="..\Zad.Infrastructure\Zad.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Configuration\" />
+    <Folder Include="Security\" />
+  </ItemGroup>
+
 </Project>

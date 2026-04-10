@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Zad.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Zad.Infrastructure.Persistence;
 namespace Zad.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ZadDbContext))]
-    partial class ZadDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410044006_AddChatSessionNameAndCitationIndexFix")]
+    partial class AddChatSessionNameAndCitationIndexFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

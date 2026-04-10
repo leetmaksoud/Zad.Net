@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Zad.Domain.Entities;
 
 namespace Zad.Infrastructure.Persistence;
 
 public static class SeedData
 {
-    public static async Task SeedAsync(ZadDbContext dbContext)
+    public static async Task SeedAsync(ZadDbContext dbContext, IConfiguration? configuration = null)
     {
         var categoryNames = new[] { "Fiqh", "Quran", "Hadith", "Comparative Fiqh" };
         var existingCategoryNames = await dbContext.Categories
@@ -72,17 +73,29 @@ public static class SeedData
             await dbContext.SaveChangesAsync();
         }
 
-        const string adminEmail = "admin@zad.local";
+        var adminEmail = configuration?["Seed:AdminEmail"];
+        if (string.IsNullOrWhiteSpace(adminEmail))
+        {
+            adminEmail = "admin@zad.local";
+        }
+
+        var adminPassword = configuration?["Seed:AdminPassword"];
+
         var adminUser = await dbContext.Users
             .Include(u => u.Roles)
             .FirstOrDefaultAsync(u => u.Email == adminEmail);
 
         if (adminUser is null)
         {
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                return;
+            }
+
             adminUser = new User
             {
                 Email = adminEmail,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@12345"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
                 IsChild = false
             };
 

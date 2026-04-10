@@ -18,7 +18,7 @@ public class DocumentController : ControllerBase
         _documentService = documentService;
     }
 
-    [HttpGet("/api/documents")]
+    [HttpGet]
     [SwaggerOperation(
         Summary = "Get all documents",
         Description = "Returns all knowledge base documents available to authorized users.")]
@@ -34,7 +34,7 @@ public class DocumentController : ControllerBase
         return Ok(documents);
     }
 
-    [HttpGet("/api/documents/category/{categoryId:int}")]
+    [HttpGet("category/{categoryId:int}")]
     [SwaggerOperation(
         Summary = "Get documents by category",
         Description = "Returns all documents for a specific category id.")]
@@ -57,7 +57,7 @@ public class DocumentController : ControllerBase
         return Ok(documents);
     }
 
-    [HttpGet("/api/categories")]
+    [HttpGet("~/api/categories")]
     [SwaggerOperation(
         Summary = "Get all categories",
         Description = "Returns all available document categories.")]

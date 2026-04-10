@@ -4,7 +4,6 @@ namespace Zad.Application.Interfaces;
 
 public interface IDocumentService
 {
-    Task<IReadOnlyList<DocumentDto>> GetDocuments();
     Task<IReadOnlyList<DocumentDto>> GetAllDocuments();
     Task<IReadOnlyList<DocumentDto>> GetDocumentsByCategory(int categoryId);
     Task<IReadOnlyList<CategoryDto>> GetCategories();

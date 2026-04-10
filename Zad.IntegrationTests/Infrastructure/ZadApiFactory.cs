@@ -12,11 +12,18 @@ namespace Zad.IntegrationTests.Infrastructure;
 
 public sealed class ZadApiFactory : WebApplicationFactory<Zad.API.Program>, IAsyncLifetime
 {
+    public const string TestJwtSecret = "test-secret-key-for-jwt-token-signing-123";
+
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        Environment.SetEnvironmentVariable("Jwt__Secret", TestJwtSecret);
+        Environment.SetEnvironmentVariable("Jwt__Issuer", "zad-api");
+        Environment.SetEnvironmentVariable("Jwt__Audience", "zad-mobile-app");
+        Environment.SetEnvironmentVariable("Jwt__ExpirationMinutes", "1440");
 
         builder.ConfigureServices(services =>
         {

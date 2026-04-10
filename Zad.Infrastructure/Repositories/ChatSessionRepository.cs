@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Zad.Domain.Entities;
 using Zad.Infrastructure.Persistence;
 
@@ -10,7 +11,7 @@ public class ChatSessionRepository : GenericRepository<ChatSession>, IChatSessio
     {
     }
 
-    public async Task<IReadOnlyList<ChatSession>> GetUserSessions(int userId)
+    public async Task<IReadOnlyList<ChatSession>> GetUserSessionsAsync(int userId)
     {
         return await Context.ChatSessions
             .Where(x => x.UserId == userId)
@@ -18,7 +19,7 @@ public class ChatSessionRepository : GenericRepository<ChatSession>, IChatSessio
             .ToListAsync();
     }
 
-    public async Task<ChatSession?> GetWithMessages(int chatSessionId)
+    public async Task<ChatSession?> GetWithMessagesAsync(int chatSessionId)
     {
         return await Context.ChatSessions
             .Include(x => x.Messages)

@@ -2,7 +2,7 @@ using Zad.Application.Interfaces.Repositories;
 
 namespace Zad.Application.Interfaces;
 
-public interface IUnitOfWork
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     IUserRepository Users { get; }
     IChatSessionRepository ChatSessions { get; }

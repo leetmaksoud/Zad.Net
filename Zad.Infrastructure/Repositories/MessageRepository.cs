@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Zad.Domain.Entities;
 using Zad.Infrastructure.Persistence;
 
@@ -10,7 +11,7 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
     {
     }
 
-    public async Task<IReadOnlyList<Message>> GetByChatSession(int chatSessionId)
+    public async Task<IReadOnlyList<Message>> GetByChatSessionAsync(int chatSessionId)
     {
         return await Context.Messages
             .Where(x => x.ChatSessionId == chatSessionId)
@@ -20,7 +21,17 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
             .ToListAsync();
     }
 
-    public async Task<Message?> GetWithCitations(int messageId)
+    public async Task<IReadOnlyList<Message>> GetUserMessagesAsync(int userId)
+    {
+        return await Context.Messages
+            .Where(x => x.ChatSession.UserId == userId)
+            .Include(x => x.Citations)
+            .ThenInclude(x => x.Document)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Message?> GetWithCitationsAsync(int messageId)
     {
         return await Context.Messages
             .Include(x => x.Citations)

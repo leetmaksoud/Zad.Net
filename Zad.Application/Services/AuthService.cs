@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Zad.Application.DTOs;
@@ -81,7 +82,7 @@ public class AuthService : IAuthService
         await ValidateAsync(_loginRequestValidator, loginRequest);
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var user = await _unitOfWork.Users.GetByEmailAsync(normalizedEmail);
+        var user = await _unitOfWork.Users.GetByEmailWithRolesAsync(normalizedEmail);
         if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
             _logger.LogWarning("Login failed for Email: {Email}", normalizedEmail);

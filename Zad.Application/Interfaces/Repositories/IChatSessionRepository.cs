@@ -4,6 +4,6 @@ namespace Zad.Application.Interfaces.Repositories;
 
 public interface IChatSessionRepository : IGenericRepository<ChatSession>
 {
-    Task<IReadOnlyList<ChatSession>> GetUserSessions(int userId);
-    Task<ChatSession?> GetWithMessages(int chatSessionId);
+    Task<IReadOnlyList<ChatSession>> GetUserSessionsAsync(int userId);
+    Task<ChatSession?> GetWithMessagesAsync(int chatSessionId);
 }

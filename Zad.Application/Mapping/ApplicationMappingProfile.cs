@@ -11,7 +11,6 @@ public class ApplicationMappingProfile : Profile
         CreateMap<User, UserDto>();
 
         CreateMap<ChatSession, ChatSessionDto>()
-            .ForMember(dest => dest.Name, opt => opt.Ignore())
             .ForMember(dest => dest.MessageCount, opt => opt.MapFrom(src => src.Messages.Count));
 
         CreateMap<Citation, CitationDto>()

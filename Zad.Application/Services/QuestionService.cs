@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Zad.Application.DTOs;
@@ -109,7 +110,7 @@ public class QuestionService : IQuestionService
             await _requestLogService.LogRequest(userId, mode, subMode, RequestStatus.Success);
             await _unitOfWork.CommitAsync();
 
-            var storedMessage = await _unitOfWork.Messages.GetWithCitations(message.Id) ?? message;
+            var storedMessage = await _unitOfWork.Messages.GetWithCitationsAsync(message.Id) ?? message;
             _logger.LogInformation(
                 "AskQuestion completed for UserId {UserId}, ChatSessionId {ChatSessionId}, MessageId {MessageId}",
                 userId,

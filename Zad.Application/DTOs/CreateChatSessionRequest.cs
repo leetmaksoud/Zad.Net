@@ -1,7 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
-using System.ComponentModel.DataAnnotations;
-
 namespace Zad.Application.DTOs;
 
 /// <summary>
@@ -13,6 +9,5 @@ public class CreateChatSessionRequest
     /// Optional display name for the chat session.
     /// </summary>
     /// <example>Daily Fiqh Questions</example>
-    [StringLength(100)]
     public string? Name { get; set; }
 }

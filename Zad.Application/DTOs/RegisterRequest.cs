@@ -1,7 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
-using System.ComponentModel.DataAnnotations;
-
 namespace Zad.Application.DTOs;
 
 /// <summary>
@@ -13,16 +9,12 @@ public class RegisterRequest
     /// New user email address.
     /// </summary>
     /// <example>newuser@zad.app</example>
-    [Required]
-    [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
     /// New user password.
     /// </summary>
     /// <example>P@ssw0rd123</example>
-    [Required]
-    [MinLength(6)]
     public string Password { get; set; } = string.Empty;
 
     /// <summary>

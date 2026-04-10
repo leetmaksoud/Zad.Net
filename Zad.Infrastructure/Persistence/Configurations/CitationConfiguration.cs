@@ -25,7 +25,7 @@ public class CitationConfiguration : IEntityTypeConfiguration<Citation>
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
-        builder.HasIndex(x => new { x.MessageId, x.DocumentId, x.ReferenceText })
+        builder.HasIndex(x => new { x.MessageId, x.DocumentId })
             .IsUnique();
 
         builder.HasOne(x => x.Message)

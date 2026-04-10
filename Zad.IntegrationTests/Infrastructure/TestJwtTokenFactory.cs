@@ -22,7 +22,7 @@ public static class TestJwtTokenFactory
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-very-long-secret-key-minimum-32-chars")),
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(ZadApiFactory.TestJwtSecret)),
                 SecurityAlgorithms.HmacSha256));
 
         return new JwtSecurityTokenHandler().WriteToken(token);

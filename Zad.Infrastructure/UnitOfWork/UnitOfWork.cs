@@ -4,7 +4,7 @@ using Zad.Infrastructure.Repositories;
 
 namespace Zad.Infrastructure.UnitOfWork;
 
-public class UnitOfWork : IUnitOfWork, IAsyncDisposable
+public class UnitOfWork : IUnitOfWork
 {
     private readonly ZadDbContext _context;
     private IDbContextTransaction? _transaction;
@@ -67,7 +67,6 @@ public class UnitOfWork : IUnitOfWork, IAsyncDisposable
             return;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
         await _transaction.CommitAsync(cancellationToken);
         await _transaction.DisposeAsync();
         _transaction = null;
@@ -91,6 +90,15 @@ public class UnitOfWork : IUnitOfWork, IAsyncDisposable
         if (_transaction is not null)
         {
             await _transaction.DisposeAsync();
+            _transaction = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_transaction is not null)
+        {
+            _transaction.Dispose();
             _transaction = null;
         }
     }

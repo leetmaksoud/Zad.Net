@@ -15,6 +15,9 @@ public class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSession>
         builder.Property(x => x.UserId)
             .IsRequired();
 
+        builder.Property(x => x.Name)
+            .HasMaxLength(100);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Zad.Application.DTOs;
 using Zad.Application.Interfaces;
@@ -16,11 +17,6 @@ public class DocumentService : IDocumentService
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
-    }
-
-    public Task<IReadOnlyList<DocumentDto>> GetDocuments()
-    {
-        return GetAllDocuments();
     }
 
     public async Task<IReadOnlyList<DocumentDto>> GetAllDocuments()
