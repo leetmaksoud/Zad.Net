@@ -1,13 +1,13 @@
 
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Zad.API.Configuration;
 using Zad.API.Middlewares;
-using Zad.API.Security;
-using Zad.Application;
-using Zad.Application.Interfaces;
-using Zad.Infrastructure;
+using Zad.Application.Extensions;
+using Zad.Infrastructure.Extensions;
+using Zad.Infrastructure.Persistence;
+using Zad.Infrastructure.Security;
 
 namespace Zad.API
 {
@@ -17,16 +17,23 @@ namespace Zad.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.AddDebug();
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
-            var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
-            builder.Services.Configure<JwtSettings>(jwtSection);
+            var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+            builder.Services.Configure<JwtOptions>(jwtSection);
 
-            var jwtSettings = jwtSection.Get<JwtSettings>() ?? throw new InvalidOperationException("JWT settings are missing.");
+            var jwtSettings = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JWT settings are missing.");
             if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
             {
                 throw new InvalidOperationException("Jwt:Secret must be at least 32 characters.");
@@ -60,16 +67,21 @@ namespace Zad.API
                 });
             });
 
-            builder.Services.AddApplication();
-            builder.Services.AddInfrastructure(builder.Configuration);
-            builder.Services.AddScoped<IJwtTokenProvider, JwtTokenProvider>();
+            builder.Services.AddApplicationServices();
+            builder.Services.AddInfrastructureServices(builder.Configuration);
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<ZadDbContext>();
+                dbContext.Database.Migrate();
+            }
+
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -81,7 +93,6 @@ namespace Zad.API
             app.UseAuthentication();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
