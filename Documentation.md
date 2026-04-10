@@ -29,7 +29,7 @@ The backend is responsible for:
 ## KEY FEATURES
 
 ### For Users
-- Ask Islamic questions (Quran, Hadith, Fiqh, etc.)
+- Ask Islamic questions (Fiqh, Aqidah, Sirah, etc.)
 - Receive answers with citations and references
 - Maintain chat history
 - Switch between Expert Mode and Kids Mode
@@ -63,9 +63,11 @@ The backend is responsible for:
 - Includes citations
 - Sub-modes:
   - Fiqh
+  - Aqidah
+  - Sirah
+  - History
+  - Language
   - Quran
-  - Hadith
-  - Comparative Fiqh
 
 ### Kids Mode
 - Simplified explanations

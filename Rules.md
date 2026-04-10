@@ -61,3 +61,25 @@
 - Follow SOLID principles
 - Write readable and maintainable code
 - Prefer clarity over cleverness
+
+## ARCHITECTURE & PATTERNS
+
+- Use Unit of Work pattern
+  - Create IUnitOfWork interface
+  - Implement UnitOfWork in Infrastructure
+  - All repositories accessed via UnitOfWork
+
+- Use Repository Pattern
+  - Generic repository for common CRUD
+  - Custom repositories for complex queries
+
+- Use AutoMapper
+  - Create mapping profiles
+  - Map between Entities and DTOs
+  - Do not map manually inside services
+
+- Use MediatR (CQRS)
+  - Commands for write operations
+  - Queries for read operations
+  - Handlers must contain business logic
+  - Controllers should only call MediatR
