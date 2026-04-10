@@ -57,7 +57,7 @@ public class DocumentController : ControllerBase
         return Ok(documents);
     }
 
-    [HttpGet("~/api/categories")]
+    [HttpGet("categories")]
     [SwaggerOperation(
         Summary = "Get all categories",
         Description = "Returns all available document categories.")]

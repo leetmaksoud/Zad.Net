@@ -211,9 +211,9 @@ namespace Zad.Infrastructure.Persistence.Migrations
                 column: "DocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Citations_MessageId_DocumentId_ReferenceText",
+                name: "IX_Citations_MessageId_DocumentId",
                 table: "Citations",
-                columns: new[] { "MessageId", "DocumentId", "ReferenceText" },
+                columns: new[] { "MessageId", "DocumentId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

@@ -1,6 +1,7 @@
 
 using System.Text;
 using System.Security.Cryptography;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -36,6 +37,10 @@ namespace Zad.API
             });
 
             builder.Services.AddControllers();
+            builder.Services.AddFluentValidationAutoValidation(options =>
+            {
+                options.DisableDataAnnotationsValidation = true;
+            });
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
             {
@@ -106,9 +111,9 @@ namespace Zad.API
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray() ?? [];
 
-            if (allowedOrigins.Length == 0 && !builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+            if (allowedOrigins.Length == 0)
             {
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured for non-development environments.");
+                throw new InvalidOperationException("Cors:AllowedOrigins must contain at least one origin.");
             }
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -133,29 +138,14 @@ namespace Zad.API
             {
                 options.AddPolicy("DefaultCors", policy =>
                 {
-                    if (allowedOrigins.Length > 0)
-                    {
-                        policy.WithOrigins(allowedOrigins)
-                            .AllowAnyHeader()
-                            .AllowAnyMethod();
-                        return;
-                    }
-
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });
             });
 
             builder.Services.AddApplicationServices();
-            builder.Services.AddInfrastructureServices(builder.Configuration);
-            builder.Services.PostConfigure<JwtOptions>(options =>
-            {
-                options.Secret = jwtSettings.Secret;
-                options.Issuer = jwtSettings.Issuer;
-                options.Audience = jwtSettings.Audience;
-                options.ExpirationMinutes = jwtSettings.ExpirationMinutes;
-            });
+            builder.Services.AddInfrastructureServices(builder.Configuration, jwtSettings);
 
             var app = builder.Build();
 
@@ -172,9 +162,10 @@ namespace Zad.API
                     await dbContext.Database.EnsureCreatedAsync();
                 }
 
-                if (string.IsNullOrWhiteSpace(builder.Configuration["Seed:AdminPassword"]))
+                var seedAdminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
+                if (string.IsNullOrWhiteSpace(seedAdminPassword))
                 {
-                    logger.LogWarning("Seed:AdminPassword is not configured. Admin user creation will be skipped.");
+                    logger.LogWarning("SEED_ADMIN_PASSWORD is not configured. Admin user creation will be skipped, but seeding will continue.");
                 }
 
                 await SeedData.SeedAsync(dbContext, builder.Configuration);
@@ -195,9 +186,9 @@ namespace Zad.API
                 options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
                 options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
                 {
-                    diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
-                    diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
-                    diagnosticContext.Set("TraceIdentifier", httpContext.TraceIdentifier);
+                    diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
+                    diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme ?? string.Empty);
+                    diagnosticContext.Set("TraceIdentifier", httpContext.TraceIdentifier ?? string.Empty);
                 };
             });
 

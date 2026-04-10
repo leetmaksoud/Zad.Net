@@ -63,7 +63,7 @@ public class ChatController : ControllerBase
             return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
-        var sessions = await _chatService.GetUserSessions(userId.Value);
+        var sessions = await _chatService.GetUserSessionsAsync(userId.Value);
         return Ok(sessions);
     }
 

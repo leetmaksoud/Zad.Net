@@ -6,5 +6,6 @@ public interface IMessageRepository : IGenericRepository<Message>
 {
     Task<IReadOnlyList<Message>> GetByChatSessionAsync(int chatSessionId);
     Task<IReadOnlyList<Message>> GetUserMessagesAsync(int userId);
+    Task<Dictionary<int, int>> GetMessageCountsBySessionAsync(int userId);
     Task<Message?> GetWithCitationsAsync(int messageId);
 }

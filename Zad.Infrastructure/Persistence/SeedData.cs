@@ -73,13 +73,18 @@ public static class SeedData
             await dbContext.SaveChangesAsync();
         }
 
-        var adminEmail = configuration?["Seed:AdminEmail"];
+        var adminEmail = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL");
+        if (string.IsNullOrWhiteSpace(adminEmail))
+        {
+            adminEmail = configuration?["Seed:AdminEmail"];
+        }
+
         if (string.IsNullOrWhiteSpace(adminEmail))
         {
             adminEmail = "admin@zad.local";
         }
 
-        var adminPassword = configuration?["Seed:AdminPassword"];
+        var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
 
         var adminUser = await dbContext.Users
             .Include(u => u.Roles)

@@ -136,7 +136,12 @@ public class QuestionService : IQuestionService
                 mode,
                 subMode);
 
-            throw;
+            if (ex is AppException)
+            {
+                throw;
+            }
+
+            throw AppExceptionMapper.ToAppException(ex);
         }
     }
 

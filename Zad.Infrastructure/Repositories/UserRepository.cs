@@ -13,7 +13,9 @@ public class UserRepository : GenericRepository<User>, IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await Context.Users.FirstOrDefaultAsync(x => x.Email == email);
+        return await Context.Users
+            .Include(x => x.Roles)
+            .FirstOrDefaultAsync(x => x.Email == email);
     }
 
     public async Task<User?> GetByEmailWithRolesAsync(string email)

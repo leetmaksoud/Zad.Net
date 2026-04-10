@@ -1,5 +1,4 @@
 using AutoMapper;
-using AutoMapper;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Zad.Application.DTOs;
@@ -31,101 +30,146 @@ public class ChatService : IChatService
 
     public async Task<ChatSessionDto> CreateSession(int userId, string? sessionName)
     {
-        var validationResult = await _createChatSessionRequestValidator.ValidateAsync(new CreateChatSessionRequest
+        try
         {
-            Name = sessionName
-        });
+            var normalizedSessionName = string.IsNullOrWhiteSpace(sessionName) ? null : sessionName.Trim();
 
-        if (!validationResult.IsValid)
-        {
-            throw new AppValidationException(validationResult.Errors);
+            var validationResult = await _createChatSessionRequestValidator.ValidateAsync(new CreateChatSessionRequest
+            {
+                Name = normalizedSessionName
+            });
+
+            if (!validationResult.IsValid)
+            {
+                throw new AppValidationException(validationResult.Errors);
+            }
+
+            var user = await _unitOfWork.Users.GetByIdAsync(userId)
+                ?? throw new NotFoundException("User not found.");
+
+            var chatSession = new ChatSession
+            {
+                UserId = user.Id,
+                Name = normalizedSessionName
+            };
+
+            await _unitOfWork.ChatSessions.AddAsync(chatSession);
+            await _unitOfWork.SaveChangesAsync();
+
+            var persistedChatSession = await _unitOfWork.ChatSessions.GetByIdAsync(chatSession.Id) ?? chatSession;
+
+            _logger.LogInformation("Chat session created. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, chatSession.Id);
+
+            return _mapper.Map<ChatSessionDto>(persistedChatSession);
         }
-
-        var user = await _unitOfWork.Users.GetByIdAsync(userId)
-            ?? throw new NotFoundException("User not found.");
-
-        var chatSession = new ChatSession
+        catch (AppException)
         {
-            UserId = user.Id,
-            Name = string.IsNullOrWhiteSpace(sessionName) ? null : sessionName.Trim()
-        };
-
-        await _unitOfWork.ChatSessions.AddAsync(chatSession);
-        await _unitOfWork.SaveChangesAsync();
-
-        _logger.LogInformation("Chat session created. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, chatSession.Id);
-
-        return _mapper.Map<ChatSessionDto>(chatSession);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw AppExceptionMapper.ToAppException(ex);
+        }
     }
 
     public async Task<MessageDto> SendMessage(int userId, int chatSessionId, string question, string answer, IReadOnlyList<AiCitationDto>? citations = null)
     {
-        var chatSession = await _unitOfWork.ChatSessions.GetByIdAsync(chatSessionId)
-            ?? throw new NotFoundException("Chat session not found.");
-
-        if (chatSession.UserId != userId)
+        try
         {
-            _logger.LogWarning("Unauthorized send message attempt. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, chatSessionId);
-            throw new UnauthorizedException("Chat session does not belong to this user.");
-        }
+            var chatSession = await _unitOfWork.ChatSessions.GetByIdAsync(chatSessionId)
+                ?? throw new NotFoundException("Chat session not found.");
 
-        var message = new Message
-        {
-            ChatSessionId = chatSessionId,
-            Question = question,
-            Answer = answer
-        };
-
-        await _unitOfWork.Messages.AddAsync(message);
-        await _unitOfWork.SaveChangesAsync();
-
-        if (citations is not null && citations.Count > 0)
-        {
-            foreach (var citation in citations)
+            if (chatSession.UserId != userId)
             {
-                await _unitOfWork.Citations.AddAsync(new Citation
-                {
-                    MessageId = message.Id,
-                    DocumentId = citation.DocumentId,
-                    ReferenceText = citation.ReferenceText
-                });
+                _logger.LogWarning("Unauthorized send message attempt. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, chatSessionId);
+                throw new UnauthorizedException("Chat session does not belong to this user.");
             }
 
-            await _unitOfWork.SaveChangesAsync();
-        }
+            var message = new Message
+            {
+                ChatSessionId = chatSessionId,
+                Question = question,
+                Answer = answer
+            };
 
-        var storedMessage = await _unitOfWork.Messages.GetWithCitationsAsync(message.Id) ?? message;
-        _logger.LogInformation("Message stored. UserId: {UserId}, ChatSessionId: {ChatSessionId}, MessageId: {MessageId}", userId, chatSessionId, message.Id);
-        return _mapper.Map<MessageDto>(storedMessage);
+            await _unitOfWork.Messages.AddAsync(message);
+            await _unitOfWork.SaveChangesAsync();
+
+            if (citations is not null && citations.Count > 0)
+            {
+                foreach (var citation in citations)
+                {
+                    await _unitOfWork.Citations.AddAsync(new Citation
+                    {
+                        MessageId = message.Id,
+                        DocumentId = citation.DocumentId,
+                        ReferenceText = citation.ReferenceText
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            var storedMessage = await _unitOfWork.Messages.GetWithCitationsAsync(message.Id) ?? message;
+            _logger.LogInformation("Message stored. UserId: {UserId}, ChatSessionId: {ChatSessionId}, MessageId: {MessageId}", userId, chatSessionId, message.Id);
+            return _mapper.Map<MessageDto>(storedMessage);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw AppExceptionMapper.ToAppException(ex);
+        }
     }
 
-    public async Task<IReadOnlyList<ChatSessionDto>> GetUserSessions(int userId)
+    public async Task<IReadOnlyList<ChatSessionDto>> GetUserSessionsAsync(int userId)
     {
         var sessions = await _unitOfWork.ChatSessions.GetUserSessionsAsync(userId);
-        return _mapper.Map<IReadOnlyList<ChatSessionDto>>(sessions);
+        var messageCountsBySession = await _unitOfWork.Messages.GetMessageCountsBySessionAsync(userId);
+
+        var sessionDtos = _mapper.Map<List<ChatSessionDto>>(sessions);
+        foreach (var sessionDto in sessionDtos)
+        {
+            sessionDto.MessageCount = messageCountsBySession.GetValueOrDefault(sessionDto.Id, 0);
+        }
+
+        return sessionDtos;
     }
 
     public async Task<ChatSessionDetailsDto?> GetSessionDetails(int userId, int sessionId)
     {
-        var chatSession = await _unitOfWork.ChatSessions.GetWithMessagesAsync(sessionId);
-        if (chatSession is null)
+        try
         {
-            return null;
+            var chatSession = await _unitOfWork.ChatSessions.GetWithMessagesAsync(sessionId);
+            if (chatSession is null)
+            {
+                return null;
+            }
+
+            if (chatSession.UserId != userId)
+            {
+                throw new UnauthorizedException("Chat session does not belong to this user.");
+            }
+
+            var messages = await _unitOfWork.Messages.GetByChatSessionAsync(sessionId);
+            var messageDtos = _mapper.Map<List<MessageDto>>(messages);
+
+            return new ChatSessionDetailsDto
+            {
+                Session = _mapper.Map<ChatSessionDto>(chatSession),
+                Messages = messageDtos
+            };
         }
-
-        if (chatSession.UserId != userId)
+        catch (AppException)
         {
-            throw new UnauthorizedException("Chat session does not belong to this user.");
+            throw;
         }
-
-        var messages = await _unitOfWork.Messages.GetByChatSessionAsync(sessionId);
-        var messageDtos = _mapper.Map<List<MessageDto>>(messages);
-
-        return new ChatSessionDetailsDto
+        catch (Exception ex)
         {
-            Session = _mapper.Map<ChatSessionDto>(chatSession),
-            Messages = messageDtos
-        };
+            throw AppExceptionMapper.ToAppException(ex);
+        }
     }
 
     public async Task<IReadOnlyList<MessageDto>> GetHistory(int userId)
@@ -139,4 +183,5 @@ public class ChatService : IChatService
         var chatSession = await _unitOfWork.ChatSessions.GetWithMessagesAsync(sessionId);
         return chatSession is null ? null : _mapper.Map<ChatSessionDto>(chatSession);
     }
+
 }

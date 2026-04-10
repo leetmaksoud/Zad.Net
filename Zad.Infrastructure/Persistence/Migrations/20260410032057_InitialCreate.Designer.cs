@@ -111,7 +111,7 @@ namespace Zad.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DocumentId");
 
-                    b.HasIndex("MessageId", "DocumentId", "ReferenceText")
+                    b.HasIndex("MessageId", "DocumentId")
                         .IsUnique();
 
                     b.ToTable("Citations", (string)null);

@@ -1,0 +1,14 @@
+namespace Zad.Application.Exceptions;
+
+public static class AppExceptionMapper
+{
+    public static Exception ToAppException(Exception ex)
+    {
+        return ex switch
+        {
+            UnauthorizedAccessException unauthorizedAccessException => new UnauthorizedException(unauthorizedAccessException.Message),
+            InvalidOperationException invalidOperationException => new AppException(invalidOperationException.Message, 400),
+            _ => ex
+        };
+    }
+}

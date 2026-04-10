@@ -2,6 +2,6 @@ using Zad.Infrastructure.Repositories;
 
 namespace Zad.Infrastructure.UnitOfWork;
 
-public interface IUnitOfWork : Zad.Application.Interfaces.IUnitOfWork
+public interface IUnitOfWork : Zad.Application.Interfaces.IUnitOfWork, IDisposable, IAsyncDisposable
 {
 }

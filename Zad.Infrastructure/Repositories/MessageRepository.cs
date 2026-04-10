@@ -31,6 +31,15 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
             .ToListAsync();
     }
 
+    public async Task<Dictionary<int, int>> GetMessageCountsBySessionAsync(int userId)
+    {
+        return await Context.Messages
+            .Where(x => x.ChatSession.UserId == userId)
+            .GroupBy(x => x.ChatSessionId)
+            .Select(x => new { x.Key, Count = x.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+    }
+
     public async Task<Message?> GetWithCitationsAsync(int messageId)
     {
         return await Context.Messages
