@@ -27,9 +27,10 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IRequestLogRepository, RequestLogRepository>();
         services.AddScoped<IUnitOfWork, Zad.Infrastructure.UnitOfWork.UnitOfWork>();
+        services.AddScoped<Zad.Application.Interfaces.IUnitOfWork>(sp => sp.GetRequiredService<IUnitOfWork>());
 
         services.Configure<AiClientOptions>(configuration.GetSection("AiService"));
-        services.AddHttpClient<IAiClient, AiClient>((serviceProvider, client) =>
+        services.AddHttpClient<Zad.Application.Interfaces.IAiClient, AiClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiClientOptions>>().Value;
 
@@ -40,6 +41,8 @@ public static class DependencyInjection
 
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 30);
         });
+
+        services.AddScoped<IAiClient>(sp => (IAiClient)sp.GetRequiredService<Zad.Application.Interfaces.IAiClient>());
 
         return services;
     }

@@ -37,6 +37,14 @@ public class UnitOfWork : IUnitOfWork, IAsyncDisposable
     public ICategoryRepository Categories { get; }
     public IRequestLogRepository RequestLogs { get; }
 
+    Zad.Application.Interfaces.Repositories.IUserRepository Zad.Application.Interfaces.IUnitOfWork.Users => Users;
+    Zad.Application.Interfaces.Repositories.IChatSessionRepository Zad.Application.Interfaces.IUnitOfWork.ChatSessions => ChatSessions;
+    Zad.Application.Interfaces.Repositories.IMessageRepository Zad.Application.Interfaces.IUnitOfWork.Messages => Messages;
+    Zad.Application.Interfaces.Repositories.ICitationRepository Zad.Application.Interfaces.IUnitOfWork.Citations => Citations;
+    Zad.Application.Interfaces.Repositories.IDocumentRepository Zad.Application.Interfaces.IUnitOfWork.Documents => Documents;
+    Zad.Application.Interfaces.Repositories.ICategoryRepository Zad.Application.Interfaces.IUnitOfWork.Categories => Categories;
+    Zad.Application.Interfaces.Repositories.IRequestLogRepository Zad.Application.Interfaces.IUnitOfWork.RequestLogs => RequestLogs;
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);

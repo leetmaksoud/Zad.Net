@@ -1,0 +1,21 @@
+using Microsoft.Extensions.DependencyInjection;
+using Zad.Application.Interfaces;
+using Zad.Application.Services;
+
+namespace Zad.Application;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddApplication(this IServiceCollection services)
+    {
+        services.AddAutoMapper(typeof(DependencyInjection).Assembly);
+
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IChatService, ChatService>();
+        services.AddScoped<IQuestionService, QuestionService>();
+        services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<IRequestLogService, RequestLogService>();
+
+        return services;
+    }
+}
