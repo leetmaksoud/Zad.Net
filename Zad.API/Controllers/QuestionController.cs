@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using Zad.Application.DTOs;
 using Zad.Application.Interfaces;
 
@@ -21,16 +22,23 @@ public class QuestionController : ControllerBase
     }
 
     [HttpPost("ask")]
+    [SwaggerOperation(
+        Summary = "Ask a question in a new session",
+        Description = "Creates a new chat session, sends the question, and returns the generated answer.")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Question answered successfully.", typeof(MessageDto))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Ask([FromBody] AskQuestionRequest request)
+    public async Task<ActionResult<MessageDto>> Ask([FromBody] AskQuestionRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
         {
-            return Unauthorized();
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
         var session = await _chatService.CreateSession(userId.Value, null);

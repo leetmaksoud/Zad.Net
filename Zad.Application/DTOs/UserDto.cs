@@ -1,8 +1,16 @@
 namespace Zad.Application.DTOs;
 
+/// <summary>
+/// User profile data returned by the API.
+/// </summary>
 public class UserDto
 {
+    /// <example>12</example>
     public int Id { get; set; }
+
+    /// <example>user@zad.app</example>
     public string Email { get; set; } = string.Empty;
+
+    /// <example>false</example>
     public bool IsChild { get; set; }
 }

@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Zad.API.Middlewares;
 using Zad.Application.Extensions;
@@ -35,7 +36,55 @@ namespace Zad.API
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.EnableAnnotations();
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Zad API",
+                    Version = "v1",
+                    Description = "API documentation for Zad Islamic Educational Q&A System."
+                });
+
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter JWT token as: Bearer {token}"
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+
+                var apiXmlFile = $"{typeof(Program).Assembly.GetName().Name}.xml";
+                var apiXmlPath = Path.Combine(AppContext.BaseDirectory, apiXmlFile);
+                if (File.Exists(apiXmlPath))
+                {
+                    options.IncludeXmlComments(apiXmlPath);
+                }
+
+                var applicationXmlFile = "Zad.Application.xml";
+                var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
+                if (File.Exists(applicationXmlPath))
+                {
+                    options.IncludeXmlComments(applicationXmlPath);
+                }
+            });
 
             var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
             builder.Services.Configure<JwtOptions>(jwtSection);
@@ -94,11 +143,15 @@ namespace Zad.API
                 }
             }
 
-            if (app.Environment.IsDevelopment())
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zad API v1");
+                options.RoutePrefix = "swagger";
+                options.DisplayRequestDuration();
+            });
+
+            app.MapGet("/api-docs", () => Results.Redirect("/swagger"));
 
             app.UseSerilogRequestLogging(options =>
             {

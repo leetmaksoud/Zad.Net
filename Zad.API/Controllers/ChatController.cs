@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using Zad.Application.DTOs;
 using Zad.Application.Interfaces;
 
@@ -21,16 +22,23 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost("sessions")]
+    [SwaggerOperation(
+        Summary = "Create a chat session",
+        Description = "Creates a new chat session for the authenticated user.")]
+    [SwaggerResponse(StatusCodes.Status201Created, "Session created successfully.", typeof(ChatSessionDto))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CreateSession([FromBody] CreateChatSessionRequest request)
+    public async Task<ActionResult<ChatSessionDto>> CreateSession([FromBody] CreateChatSessionRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
         {
-            return Unauthorized();
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
         var session = await _chatService.CreateSession(userId.Value, request.Name);
@@ -38,15 +46,21 @@ public class ChatController : ControllerBase
     }
 
     [HttpGet("sessions")]
+    [SwaggerOperation(
+        Summary = "Get user chat sessions",
+        Description = "Returns all chat sessions for the authenticated user.")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Sessions retrieved successfully.", typeof(IReadOnlyList<ChatSessionDto>))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetSessions()
+    public async Task<ActionResult<IReadOnlyList<ChatSessionDto>>> GetSessions()
     {
         var userId = GetCurrentUserId();
         if (userId is null)
         {
-            return Unauthorized();
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
         var sessions = await _chatService.GetUserSessions(userId.Value);
@@ -54,39 +68,54 @@ public class ChatController : ControllerBase
     }
 
     [HttpGet("sessions/{id:int}")]
+    [SwaggerOperation(
+        Summary = "Get chat session details",
+        Description = "Returns a chat session and its messages by session id for the authenticated user.")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Session found.", typeof(ChatSessionDetailsDto))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Session not found.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetSessionById(int id)
+    public async Task<ActionResult<ChatSessionDetailsDto>> GetSessionById(int id)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
         {
-            return Unauthorized();
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
         var session = await _chatService.GetSessionDetails(userId.Value, id);
         if (session is null)
         {
-            return NotFound(new { message = "Chat session not found." });
+            return NotFound(new ErrorResponseDto { Message = "Chat session not found." });
         }
 
         return Ok(session);
     }
 
     [HttpPost("sessions/{id:int}/messages")]
+    [SwaggerOperation(
+        Summary = "Send a message in a chat session",
+        Description = "Sends a question to the selected chat session and returns the generated answer with citations.")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Message sent successfully.", typeof(MessageDto))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Session not found.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> SendMessage(int id, [FromBody] AskQuestionRequest request)
+    public async Task<ActionResult<MessageDto>> SendMessage(int id, [FromBody] AskQuestionRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
         {
-            return Unauthorized();
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
         }
 
         var result = await _questionService.AskQuestion(userId.Value, id, request.Question, request.ChatMode, request.ExpertSubMode);
