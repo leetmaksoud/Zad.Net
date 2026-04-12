@@ -1,5 +1,4 @@
 using AutoMapper;
-using AutoMapper;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Zad.Application.DTOs;
@@ -82,16 +81,18 @@ public class AuthService : IAuthService
         await ValidateAsync(_loginRequestValidator, loginRequest);
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var user = await _unitOfWork.Users.GetByEmailWithRolesAsync(normalizedEmail);
+        var user = await _unitOfWork.Users.GetByEmailAsync(normalizedEmail);
         if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
             _logger.LogWarning("Login failed for Email: {Email}", normalizedEmail);
             throw new UnauthorizedException("Invalid email or password.");
         }
 
+        var userWithRoles = await _unitOfWork.Users.GetByIdWithRolesAsync(user.Id) ?? user;
+
         _logger.LogInformation("Login successful for UserId: {UserId}", user.Id);
 
-        return _jwtTokenProvider.GenerateToken(user);
+        return _jwtTokenProvider.GenerateToken(userWithRoles);
     }
 
     public async Task<UserDto?> GetByEmail(string email)
@@ -99,24 +100,6 @@ public class AuthService : IAuthService
         var normalizedEmail = email.Trim().ToLowerInvariant();
         var user = await _unitOfWork.Users.GetByEmailAsync(normalizedEmail);
         return user is null ? null : _mapper.Map<UserDto>(user);
-    }
-
-    public Task<bool> ValidateToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return Task.FromResult(false);
-        }
-
-        try
-        {
-            var principal = _jwtTokenProvider.ValidateToken(token);
-            return Task.FromResult(principal.Identity?.IsAuthenticated == true);
-        }
-        catch
-        {
-            return Task.FromResult(false);
-        }
     }
 
     private static async Task ValidateAsync<T>(IValidator<T> validator, T request)

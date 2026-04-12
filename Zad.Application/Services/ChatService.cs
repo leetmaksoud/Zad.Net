@@ -49,9 +49,9 @@ public class ChatService : IChatService
 
             var chatSession = new ChatSession
             {
-                UserId = user.Id,
-                Name = normalizedSessionName
+                UserId = user.Id
             };
+            chatSession.SetName(normalizedSessionName);
 
             await _unitOfWork.ChatSessions.AddAsync(chatSession);
             await _unitOfWork.SaveChangesAsync();
@@ -84,6 +84,8 @@ public class ChatService : IChatService
                 _logger.LogWarning("Unauthorized send message attempt. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, chatSessionId);
                 throw new UnauthorizedException("Chat session does not belong to this user.");
             }
+
+            chatSession.TrySetNameFromQuestion(question);
 
             var message = new Message
             {
@@ -129,13 +131,15 @@ public class ChatService : IChatService
         var sessions = await _unitOfWork.ChatSessions.GetUserSessionsAsync(userId);
         var messageCountsBySession = await _unitOfWork.Messages.GetMessageCountsBySessionAsync(userId);
 
-        var sessionDtos = _mapper.Map<List<ChatSessionDto>>(sessions);
-        foreach (var sessionDto in sessionDtos)
-        {
-            sessionDto.MessageCount = messageCountsBySession.GetValueOrDefault(sessionDto.Id, 0);
-        }
-
-        return sessionDtos;
+        return sessions
+            .Select(session => new ChatSessionDto
+            {
+                Id = session.Id,
+                Name = session.Name,
+                CreatedAt = session.CreatedAt,
+                MessageCount = messageCountsBySession.GetValueOrDefault(session.Id, 0)
+            })
+            .ToList();
     }
 
     public async Task<ChatSessionDetailsDto?> GetSessionDetails(int userId, int sessionId)

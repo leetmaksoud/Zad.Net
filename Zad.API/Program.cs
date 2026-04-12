@@ -108,12 +108,41 @@ namespace Zad.API
 
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
                 .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray() ?? [];
 
             if (allowedOrigins.Length == 0)
             {
                 throw new InvalidOperationException("Cors:AllowedOrigins must contain at least one origin.");
+            }
+
+            if (allowedOrigins.Any(origin => origin == "*" || origin.Contains('*')))
+            {
+                throw new InvalidOperationException("Wildcard CORS origins are not allowed. Configure explicit origins in Cors:AllowedOrigins.");
+            }
+
+            var invalidOrigins = allowedOrigins
+                .Where(origin =>
+                    !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                    || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                .ToArray();
+
+            if (invalidOrigins.Length > 0)
+            {
+                throw new InvalidOperationException($"Invalid CORS origins configured: {string.Join(", ", invalidOrigins)}");
+            }
+
+            if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+            {
+                var nonHttpsOrigins = allowedOrigins
+                    .Where(origin => Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme != Uri.UriSchemeHttps)
+                    .ToArray();
+
+                if (nonHttpsOrigins.Length > 0)
+                {
+                    throw new InvalidOperationException($"Non-HTTPS CORS origins are not allowed outside development/testing: {string.Join(", ", nonHttpsOrigins)}");
+                }
             }
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -162,10 +191,14 @@ namespace Zad.API
                     await dbContext.Database.EnsureCreatedAsync();
                 }
 
-                var seedAdminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
-                if (string.IsNullOrWhiteSpace(seedAdminPassword))
+                var seedAdminEmail = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL")
+                    ?? builder.Configuration["Seed:AdminEmail"];
+                var seedAdminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD")
+                    ?? builder.Configuration["Seed:AdminPassword"];
+
+                if (string.IsNullOrWhiteSpace(seedAdminEmail) || string.IsNullOrWhiteSpace(seedAdminPassword))
                 {
-                    logger.LogWarning("SEED_ADMIN_PASSWORD is not configured. Admin user creation will be skipped, but seeding will continue.");
+                    logger.LogWarning("Seed admin credentials are not fully configured. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (or Seed:AdminEmail and Seed:AdminPassword). Admin user creation will be skipped, but seeding will continue.");
                 }
 
                 await SeedData.SeedAsync(dbContext, builder.Configuration);

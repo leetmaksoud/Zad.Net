@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using Zad.Domain.Entities;
 using Zad.Infrastructure.Persistence;
 
@@ -14,7 +13,6 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await Context.Users
-            .Include(x => x.Roles)
             .FirstOrDefaultAsync(x => x.Email == email);
     }
 

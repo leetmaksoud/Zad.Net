@@ -22,10 +22,16 @@ public class CitationConfiguration : IEntityTypeConfiguration<Citation>
             .HasMaxLength(2000)
             .IsRequired();
 
+        builder.Property<byte[]>("ReferenceTextHash")
+            .HasColumnType("binary(32)")
+            .HasComputedColumnSql("CONVERT(binary(32), HASHBYTES('SHA2_256', [ReferenceText]))", stored: true);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
-        builder.HasIndex(x => new { x.MessageId, x.DocumentId })
+        builder.HasIndex(x => new { x.MessageId, x.DocumentId });
+
+        builder.HasIndex("MessageId", "DocumentId", "ReferenceTextHash")
             .IsUnique();
 
         builder.HasOne(x => x.Message)

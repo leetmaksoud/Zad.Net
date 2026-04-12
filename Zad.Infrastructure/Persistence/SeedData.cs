@@ -79,12 +79,16 @@ public static class SeedData
             adminEmail = configuration?["Seed:AdminEmail"];
         }
 
-        if (string.IsNullOrWhiteSpace(adminEmail))
+        var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
+        if (string.IsNullOrWhiteSpace(adminPassword))
         {
-            adminEmail = "admin@zad.local";
+            adminPassword = configuration?["Seed:AdminPassword"];
         }
 
-        var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            return;
+        }
 
         var adminUser = await dbContext.Users
             .Include(u => u.Roles)
@@ -92,11 +96,6 @@ public static class SeedData
 
         if (adminUser is null)
         {
-            if (string.IsNullOrWhiteSpace(adminPassword))
-            {
-                return;
-            }
-
             adminUser = new User
             {
                 Email = adminEmail,

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using Zad.Domain.Entities;
 using Zad.Infrastructure.Persistence;
 
