@@ -10,7 +10,4 @@ public class UserDto
 
     /// <example>user@zad.app</example>
     public string Email { get; set; } = string.Empty;
-
-    /// <example>false</example>
-    public bool IsChild { get; set; }
 }

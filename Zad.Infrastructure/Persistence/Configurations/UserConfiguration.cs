@@ -20,9 +20,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(512)
             .IsRequired();
 
-        builder.Property(x => x.IsChild)
-            .IsRequired();
-
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

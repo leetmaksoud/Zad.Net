@@ -34,13 +34,12 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<UserDto> Register(string email, string password, bool isChild)
+    public async Task<UserDto> Register(string email, string password)
     {
         var registerRequest = new RegisterRequest
         {
             Email = email,
-            Password = password,
-            IsChild = isChild
+            Password = password
         };
 
         await ValidateAsync(_registerRequestValidator, registerRequest);
@@ -58,8 +57,7 @@ public class AuthService : IAuthService
         var user = new User
         {
             Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            IsChild = isChild
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
         };
 
         await _unitOfWork.Users.AddAsync(user);

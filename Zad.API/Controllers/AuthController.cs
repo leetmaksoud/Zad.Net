@@ -31,7 +31,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequest request)
     {
-        var user = await _authService.Register(request.Email, request.Password, request.IsChild);
+        var user = await _authService.Register(request.Email, request.Password);
         var token = await _authService.Login(request.Email, request.Password);
 
         var response = new AuthResponseDto

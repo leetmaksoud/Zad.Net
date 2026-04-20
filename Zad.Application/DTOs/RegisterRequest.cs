@@ -16,10 +16,4 @@ public class RegisterRequest
     /// </summary>
     /// <example>P@ssw0rd123</example>
     public string Password { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Indicates whether the account is for a child.
-    /// </summary>
-    /// <example>false</example>
-    public bool IsChild { get; set; }
 }

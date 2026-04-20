@@ -93,7 +93,6 @@ public static class SeedData
                 {
                     Email = normalizedAdminEmail,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(seedAdminPassword),
-                    IsChild = false,
                     Roles = new List<Role> { adminRole }
                 };
 

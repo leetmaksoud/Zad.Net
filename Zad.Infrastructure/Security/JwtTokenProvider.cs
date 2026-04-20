@@ -23,8 +23,7 @@ public class JwtTokenProvider : IJwtTokenProvider
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new("is_child", user.IsChild.ToString())
+            new(ClaimTypes.NameIdentifier, user.Id.ToString())
         };
 
         foreach (var role in user.Roles)

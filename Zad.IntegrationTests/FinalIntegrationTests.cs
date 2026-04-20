@@ -44,8 +44,7 @@ public class FinalIntegrationTests : IClassFixture<ZadApiFactory>, IAsyncLifetim
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
-            Password = password,
-            IsChild = false
+            Password = password
         });
 
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
@@ -205,8 +204,7 @@ public class FinalIntegrationTests : IClassFixture<ZadApiFactory>, IAsyncLifetim
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
-            Password = password,
-            IsChild = false
+            Password = password
         });
 
         registerResponse.EnsureSuccessStatusCode();
