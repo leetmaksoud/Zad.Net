@@ -1,4 +1,4 @@
-
+﻿
 using System.Text;
 using System.Security.Cryptography;
 using FluentValidation.AspNetCore;
@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.FileProviders;
 using Serilog;
 using Zad.API.Middlewares;
 using Zad.Application.Extensions;
@@ -302,21 +301,6 @@ namespace Zad.API
                 });
 
                 app.MapGet("/api-docs", () => Results.Redirect("/swagger"));
-                app.MapGet("/", () => Results.Redirect("/swagger"));
-            }
-            else
-            {
-                app.MapGet("/", () => Results.Ok(new { status = "ok" }));
-            }
-
-            var postmanDirectory = Path.Combine(app.Environment.ContentRootPath, "Postman");
-            if (Directory.Exists(postmanDirectory))
-            {
-                app.UseStaticFiles(new StaticFileOptions
-                {
-                    FileProvider = new PhysicalFileProvider(postmanDirectory),
-                    RequestPath = "/postman"
-                });
             }
 
             app.UseSerilogRequestLogging(options =>

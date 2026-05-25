@@ -1,4 +1,4 @@
-{
+﻿{
   "ConnectionStrings": {
     "DefaultConnection": "Server=db53662.databaseasp.net; Database=db53662; User Id=db53662; Password=Z=w84J_q#tB2; Encrypt=False;"
   },
@@ -10,7 +10,7 @@
     "Issuer": "zad-api",
     "Audience": "zad-mobile-app",
     "ExpirationMinutes": 1440,
-    "Secret": "ZadSecretZadSecretZadSecretZadSecret"
+    "Secret": "ZadSecret"
   },
   "Cors": {
     "AllowedOrigins": [],
@@ -58,9 +58,6 @@
         }
       }
     ]
-  },
-  "Swagger": {
-    "Enabled": true
   },
   "Logging": {
     "LogLevel": {

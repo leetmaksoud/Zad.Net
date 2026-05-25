@@ -1,4 +1,4 @@
-
+﻿
 using System.Text;
 using System.Security.Cryptography;
 using FluentValidation.AspNetCore;
@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.FileProviders;
 using Serilog;
 using Zad.API.Middlewares;
 using Zad.Application.Extensions;
@@ -98,11 +97,16 @@ namespace Zad.API
 
             var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
             var jwtSettings = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JWT settings are missing.");
-            var generatedJwtSecret = false;
             if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
             {
-                jwtSettings.Secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
-                generatedJwtSecret = true;
+                if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
+                {
+                    jwtSettings.Secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+                }
+                else
+                {
+                    throw new InvalidOperationException("Jwt:Secret must be at least 32 characters. Configure it via environment variable Jwt__Secret.");
+                }
             }
 
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
@@ -136,34 +140,24 @@ namespace Zad.API
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray() ?? ["Authorization", "Content-Type"];
 
-            var wildcardOrigins = allowedOrigins
-                .Where(origin => origin == "*" || origin.Contains('*'))
-                .ToArray();
-            if (wildcardOrigins.Length > 0)
+            if (builder.Environment.IsProduction() && allowedOrigins.Length == 0)
             {
-                allowedOrigins = allowedOrigins
-                    .Except(wildcardOrigins, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                throw new InvalidOperationException("Cors:AllowedOrigins must contain at least one origin in production.");
             }
 
-            var wildcardMethods = allowedMethods
-                .Where(method => method == "*" || method.Contains('*'))
-                .ToArray();
-            if (wildcardMethods.Length > 0)
+            if (allowedOrigins.Any(origin => origin == "*" || origin.Contains('*')))
             {
-                allowedMethods = allowedMethods
-                    .Except(wildcardMethods, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                throw new InvalidOperationException("Wildcard CORS origins are not allowed. Configure explicit origins in Cors:AllowedOrigins.");
             }
 
-            var wildcardHeaders = allowedHeaders
-                .Where(header => header == "*" || header.Contains('*'))
-                .ToArray();
-            if (wildcardHeaders.Length > 0)
+            if (allowedMethods.Any(method => method == "*" || method.Contains('*')))
             {
-                allowedHeaders = allowedHeaders
-                    .Except(wildcardHeaders, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                throw new InvalidOperationException("Wildcard CORS methods are not allowed. Configure explicit methods in Cors:AllowedMethods.");
+            }
+
+            if (allowedHeaders.Any(header => header == "*" || header.Contains('*')))
+            {
+                throw new InvalidOperationException("Wildcard CORS headers are not allowed. Configure explicit headers in Cors:AllowedHeaders.");
             }
 
             var invalidOrigins = allowedOrigins
@@ -174,23 +168,18 @@ namespace Zad.API
 
             if (invalidOrigins.Length > 0)
             {
-                allowedOrigins = allowedOrigins
-                    .Except(invalidOrigins, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                throw new InvalidOperationException($"Invalid CORS origins configured: {string.Join(", ", invalidOrigins)}");
             }
 
-            var nonHttpsOrigins = Array.Empty<string>();
             if (!isDevelopmentOrTesting)
             {
-                nonHttpsOrigins = allowedOrigins
+                var nonHttpsOrigins = allowedOrigins
                     .Where(origin => Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme != Uri.UriSchemeHttps)
                     .ToArray();
 
                 if (nonHttpsOrigins.Length > 0)
                 {
-                    allowedOrigins = allowedOrigins
-                        .Except(nonHttpsOrigins, StringComparer.OrdinalIgnoreCase)
-                        .ToArray();
+                    throw new InvalidOperationException($"Non-HTTPS CORS origins are not allowed outside development/testing: {string.Join(", ", nonHttpsOrigins)}");
                 }
             }
 
@@ -230,41 +219,6 @@ namespace Zad.API
 
             var app = builder.Build();
 
-            if (generatedJwtSecret)
-            {
-                app.Logger.LogWarning("Jwt:Secret was missing or too short. A temporary secret was generated; configure Jwt__Secret to a stable value for production.");
-            }
-
-            if (wildcardOrigins.Length > 0)
-            {
-                app.Logger.LogWarning("Wildcard CORS origins were ignored: {Origins}", string.Join(", ", wildcardOrigins));
-            }
-
-            if (wildcardMethods.Length > 0)
-            {
-                app.Logger.LogWarning("Wildcard CORS methods were ignored: {Methods}", string.Join(", ", wildcardMethods));
-            }
-
-            if (wildcardHeaders.Length > 0)
-            {
-                app.Logger.LogWarning("Wildcard CORS headers were ignored: {Headers}", string.Join(", ", wildcardHeaders));
-            }
-
-            if (invalidOrigins.Length > 0)
-            {
-                app.Logger.LogWarning("Invalid CORS origins were ignored: {Origins}", string.Join(", ", invalidOrigins));
-            }
-
-            if (nonHttpsOrigins.Length > 0)
-            {
-                app.Logger.LogWarning("Non-HTTPS CORS origins were ignored outside development/testing: {Origins}", string.Join(", ", nonHttpsOrigins));
-            }
-
-            if (builder.Environment.IsProduction() && allowedOrigins.Length == 0)
-            {
-                app.Logger.LogWarning("Cors:AllowedOrigins is empty in production. Cross-origin requests will be blocked until explicit origins are configured.");
-            }
-
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<ZadDbContext>();
@@ -302,21 +256,6 @@ namespace Zad.API
                 });
 
                 app.MapGet("/api-docs", () => Results.Redirect("/swagger"));
-                app.MapGet("/", () => Results.Redirect("/swagger"));
-            }
-            else
-            {
-                app.MapGet("/", () => Results.Ok(new { status = "ok" }));
-            }
-
-            var postmanDirectory = Path.Combine(app.Environment.ContentRootPath, "Postman");
-            if (Directory.Exists(postmanDirectory))
-            {
-                app.UseStaticFiles(new StaticFileOptions
-                {
-                    FileProvider = new PhysicalFileProvider(postmanDirectory),
-                    RequestPath = "/postman"
-                });
             }
 
             app.UseSerilogRequestLogging(options =>
