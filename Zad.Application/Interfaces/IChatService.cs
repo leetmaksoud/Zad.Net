@@ -10,4 +10,5 @@ public interface IChatService
     Task<ChatSessionDetailsDto?> GetSessionDetails(int userId, int sessionId);
     Task<IReadOnlyList<MessageDto>> GetHistory(int userId);
     Task<ChatSessionDto?> GetChatSession(int sessionId);
+    Task DeleteSession(int userId, int sessionId);
 }

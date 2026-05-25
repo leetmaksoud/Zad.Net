@@ -44,6 +44,8 @@ public class FinalIntegrationTests : IClassFixture<ZadApiFactory>, IAsyncLifetim
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
+            Name = "Integration User",
+            ConfirmPassword = password,
             Password = password
         });
 
@@ -145,6 +147,79 @@ public class FinalIntegrationTests : IClassFixture<ZadApiFactory>, IAsyncLifetim
     }
 
     [Fact]
+    public async Task DeleteSession_ShouldReturnNoContent()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var createSessionResponse = await _client.PostAsJsonAsync("/api/chat/sessions", new
+        {
+            Name = "Delete Session"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+        var sessionPayload = await createSessionResponse.Content.ReadFromJsonAsync<ChatSessionDto>(JsonOptions);
+        Assert.NotNull(sessionPayload);
+
+        var deleteResponse = await _client.DeleteAsync($"/api/chat/sessions/{sessionPayload!.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZadDbContext>();
+        var deletedSession = await db.ChatSessions.FindAsync(sessionPayload.Id);
+        Assert.Null(deletedSession);
+    }
+
+    [Fact]
+    public async Task DeleteSession_InvalidJwt_ShouldReturnUnauthorized()
+    {
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid-token");
+
+        var response = await _client.DeleteAsync("/api/chat/sessions/1");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSession_NotFound_ShouldReturnNotFound()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.DeleteAsync("/api/chat/sessions/987654");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSession_OtherUser_ShouldReturnUnauthorized()
+    {
+        var ownerToken = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        var createSessionResponse = await _client.PostAsJsonAsync("/api/chat/sessions", new
+        {
+            Name = "Other User Session"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+        var sessionPayload = await createSessionResponse.Content.ReadFromJsonAsync<ChatSessionDto>(JsonOptions);
+        Assert.NotNull(sessionPayload);
+
+        var otherUserToken = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherUserToken);
+
+        var response = await _client.DeleteAsync($"/api/chat/sessions/{sessionPayload!.Id}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZadDbContext>();
+        var existingSession = await db.ChatSessions.FindAsync(sessionPayload.Id);
+        Assert.NotNull(existingSession);
+    }
+
+    [Fact]
     public async Task AiTimeout_ShouldReturnGatewayTimeoutAndLogFailure()
     {
         var token = await RegisterAndGetTokenAsync();
@@ -210,6 +285,8 @@ public class FinalIntegrationTests : IClassFixture<ZadApiFactory>, IAsyncLifetim
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
+            Name = "E2E User",
+            ConfirmPassword = password,
             Password = password
         });
 

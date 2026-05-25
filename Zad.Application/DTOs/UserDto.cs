@@ -16,4 +16,10 @@ public class UserDto
     /// </summary>
     /// <example>user@zad.app</example>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User display name.
+    /// </summary>
+    /// <example>New User</example>
+    public string Name { get; set; } = string.Empty;
 }

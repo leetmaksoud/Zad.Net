@@ -128,6 +128,30 @@ public class ChatController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("sessions/{id:int}")]
+    [SwaggerOperation(
+        Summary = "Delete a chat session",
+        Description = "Deletes a chat session for the authenticated user.")]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "Session deleted successfully.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Missing or invalid JWT token.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Session not found.", typeof(ErrorResponseDto))]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "Unexpected server error.", typeof(ErrorResponseDto))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteSession(int id)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(new ErrorResponseDto { Message = "User is not authorized." });
+        }
+
+        await _chatService.DeleteSession(userId.Value, id);
+        return NoContent();
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

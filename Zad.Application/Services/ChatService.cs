@@ -188,4 +188,32 @@ public class ChatService : IChatService
         return chatSession is null ? null : _mapper.Map<ChatSessionDto>(chatSession);
     }
 
+    public async Task DeleteSession(int userId, int sessionId)
+    {
+        try
+        {
+            var chatSession = await _unitOfWork.ChatSessions.GetByIdAsync(sessionId)
+                ?? throw new NotFoundException("Chat session not found.");
+
+            if (chatSession.UserId != userId)
+            {
+                _logger.LogWarning("Unauthorized delete session attempt. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, sessionId);
+                throw new UnauthorizedException("Chat session does not belong to this user.");
+            }
+
+            await _unitOfWork.ChatSessions.DeleteAsync(sessionId);
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Chat session deleted. UserId: {UserId}, ChatSessionId: {ChatSessionId}", userId, sessionId);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw AppExceptionMapper.ToAppException(ex);
+        }
+    }
+
 }

@@ -34,17 +34,21 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<UserDto> Register(string email, string password)
+    public async Task<UserDto> Register(RegisterRequest request)
     {
+        var trimmedEmail = request.Email?.Trim() ?? string.Empty;
+        var normalizedEmail = trimmedEmail.ToLowerInvariant();
+        var trimmedName = request.Name?.Trim() ?? string.Empty;
         var registerRequest = new RegisterRequest
         {
-            Email = email,
-            Password = password
+            Email = normalizedEmail,
+            Name = trimmedName,
+            Password = request.Password,
+            ConfirmPassword = request.ConfirmPassword
         };
 
         await ValidateAsync(_registerRequestValidator, registerRequest);
 
-        var normalizedEmail = email.Trim().ToLowerInvariant();
         var existingUser = await _unitOfWork.Users.GetByEmailAsync(normalizedEmail);
         if (existingUser is not null)
         {
@@ -57,7 +61,8 @@ public class AuthService : IAuthService
         var user = new User
         {
             Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
+            Name = trimmedName,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
         };
 
         await _unitOfWork.Users.AddAsync(user);

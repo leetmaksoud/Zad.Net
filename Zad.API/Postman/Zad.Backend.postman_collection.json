@@ -7,6 +7,7 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "https://localhost:7000" },
+    { "key": "name", "value": "New User" },
     { "key": "email", "value": "user@test.local" },
     { "key": "password", "value": "Strong@12345" },
     { "key": "token", "value": "" },
@@ -21,7 +22,7 @@
         "url": "{{baseUrl}}/api/auth/register",
         "body": {
           "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+          "raw": "{\n  \"name\": \"{{name}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"confirmPassword\": \"{{password}}\"\n}"
         }
       }
     },
@@ -95,6 +96,16 @@
       "name": "Chat - View Session History",
       "request": {
         "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": "{{baseUrl}}/api/chat/sessions/{{sessionId}}"
+      }
+    },
+    {
+      "name": "Chat - Delete Session",
+      "request": {
+        "method": "DELETE",
         "header": [
           { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
